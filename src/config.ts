@@ -2,7 +2,8 @@
 export const W = 780;
 export const H = 1520;
 
-export const FONT = 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
+export const FONT =
+  '"Nunito", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
 
 // Vertical layout
 export const TOPBAR_H = 110;
@@ -14,10 +15,10 @@ export const HERO_Y = 845;
 export const PANEL_TOP = 920;
 
 export const COLORS = {
-  bg: 0x1b2a49,
-  panel: 0x243b6b,
-  panelLight: 0x35508f,
-  accent: 0xe8467c,
+  bg: 0x4b3a7a,
+  panel: 0x6a54a8,
+  panelLight: 0x8a74c9,
+  accent: 0xff6f91,
   gold: 0xffc94d,
-  green: 0x3aa86b,
+  green: 0x4cc38a,
 };

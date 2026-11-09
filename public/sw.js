@@ -1,6 +1,6 @@
 // Offline support. Pages (navigations) are network-first so a new release shows up on the next
 // launch; other same-origin assets (hashed by Vite) are stale-while-revalidate.
-const CACHE = "newyearania-v2";
+const CACHE = "newyearania-v3";
 
 self.addEventListener("install", () => self.skipWaiting());
 

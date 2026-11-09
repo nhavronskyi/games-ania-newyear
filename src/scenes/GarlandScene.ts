@@ -3,7 +3,9 @@ import { COLORS, FONT, H, W } from "../config";
 import { GARLAND_MIN_LEN } from "../goals";
 import * as sound from "../sound";
 import { save, state } from "../state";
-import { button } from "../ui";
+import { P, shade } from "../art/palette";
+import { strokeText } from "../style";
+import { bubble, button, panel, pill } from "../ui";
 
 // Fully saturated colors; unlit bulbs stay clearly coloured, lit ones add a glow and grow slightly.
 const BULB_COLORS = [
@@ -25,11 +27,13 @@ export class GarlandScene extends Phaser.Scene {
   private bulbs: {
     lit: Phaser.GameObjects.Arc;
     glow: Phaser.GameObjects.Arc;
+    hi: Phaser.GameObjects.Graphics;
   }[] = [];
   private statusText!: Phaser.GameObjects.Text;
   private dotsText!: Phaser.GameObjects.Text;
   private earnedText!: Phaser.GameObjects.Text;
   private bestText!: Phaser.GameObjects.Text;
+  private coinPill!: ReturnType<typeof pill>;
   private coinText!: Phaser.GameObjects.Text;
   private overObjs: Phaser.GameObjects.GameObject[] = [];
 
@@ -55,45 +59,15 @@ export class GarlandScene extends Phaser.Scene {
       .rectangle(0, 0, W, H, 0x000000, 0.45)
       .setOrigin(0)
       .setInteractive();
-    this.add
-      .rectangle(W / 2, H / 2, W - 40, H - 120, COLORS.panelLight)
-      .setStrokeStyle(6, 0xffffff, 0.25);
+    panel(this, W / 2, H / 2, W - 40, H - 120, COLORS.panel, 48);
 
-    this.add
-      .text(60, 110, "💡 Гірлянда", {
-        fontSize: "56px",
-        fontFamily: FONT,
-        color: "#ffffff",
-        fontStyle: "bold",
-      })
-      .setOrigin(0, 0.5);
-    this.coinText = this.add
-      .text(W - 160, 110, "", {
-        fontSize: "46px",
-        fontFamily: FONT,
-        color: "#ffd86b",
-        fontStyle: "bold",
-      })
-      .setOrigin(1, 0.5);
-    button(
-      this,
-      W - 100,
-      110,
-      90,
-      90,
-      "✕",
-      COLORS.accent,
-      () => this.close(),
-      44,
-    );
+    this.add.text(60, 110, "💡 Гірлянда", strokeText(54)).setOrigin(0, 0.5);
+    this.coinPill = pill(this, W - 290, 110, 200, 66, COLORS.gold);
+    this.coinText = this.coinPill.t;
+    bubble(this, W - 100, 110, 44, COLORS.accent, "✕", () => this.close(), 40);
 
     this.statusText = this.add
-      .text(W / 2, 330, "", {
-        fontSize: "52px",
-        fontFamily: FONT,
-        color: "#ffffff",
-        fontStyle: "bold",
-      })
+      .text(W / 2, 330, "", strokeText(50))
       .setOrigin(0.5);
 
     this.drawWires();
@@ -126,12 +100,32 @@ export class GarlandScene extends Phaser.Scene {
 
   // ------------------------------------------------------------ Drawing
 
+  /** Y of the drooping wire above row `rowY` at horizontal position x. */
+  private wireY(rowY: number, x: number): number {
+    const t = (x - 70) / (W - 140);
+    return rowY - 125 + 30 * Math.sin(Math.PI * t);
+  }
+
   private drawWires(): void {
     const g = this.add.graphics();
-    g.lineStyle(8, 0x1b2a49, 1);
     ROWS.forEach((y) => {
-      g.lineBetween(70, y - 125, W - 70, y - 125);
-      COLS.forEach((x) => g.lineBetween(x, y - 125, x, y - 80));
+      g.lineStyle(9, 0x1b2a49, 1).beginPath().moveTo(70, this.wireY(y, 70));
+      for (let x = 70; x <= W - 70; x += 10) g.lineTo(x, this.wireY(y, x));
+      g.strokePath();
+      g.fillStyle(0x1b2a49, 1);
+      g.fillCircle(70, this.wireY(y, 70), 11);
+      g.fillCircle(W - 70, this.wireY(y, W - 70), 11);
+      COLS.forEach((x) => {
+        // socket cap
+        g.fillStyle(0x3a3f55, 1).fillRoundedRect(
+          x - 24,
+          this.wireY(y, x) - 4,
+          48,
+          y - BULB_R + 26 - this.wireY(y, x),
+          10,
+        );
+        g.fillStyle(0x59607c, 1).fillRect(x - 24, y - BULB_R - 6, 48, 6);
+      });
     });
   }
 
@@ -142,11 +136,23 @@ export class GarlandScene extends Phaser.Scene {
     const glow = this.add
       .circle(x, y, BULB_R + 38, color, 0)
       .setBlendMode(Phaser.BlendModes.ADD);
-    this.add.circle(x, y, BULB_R, 0x1b2a49).setStrokeStyle(6, 0xffffff, 0.25);
+    this.add.circle(x, y, BULB_R, shade(color, -0.45));
     const lit = this.add.circle(x, y, BULB_R - 6, color, UNLIT_ALPHA);
     lit.setInteractive({ useHandCursor: true });
     lit.on("pointerdown", () => this.onBulbTap(i));
-    this.bulbs.push({ lit, glow });
+    const hi = this.add.graphics({ x, y });
+    hi.fillStyle(P.white, 0.55).fillEllipse(
+      -BULB_R * 0.33,
+      -BULB_R * 0.4,
+      BULB_R * 0.5,
+      BULB_R * 0.3,
+    );
+    hi.fillStyle(P.white, 0.8).fillCircle(-BULB_R * 0.55, -BULB_R * 0.12, 6);
+    hi.lineStyle(6, P.white, 0.45)
+      .beginPath()
+      .arc(0, 0, BULB_R - 20, 0.3, 1.2)
+      .strokePath();
+    this.bulbs.push({ lit, glow, hi });
   }
 
   private flash(i: number, ms: number): void {
@@ -155,13 +161,34 @@ export class GarlandScene extends Phaser.Scene {
     b.lit.setAlpha(1);
     b.glow.setAlpha(0.85);
     b.lit.setScale(1.1);
+    b.hi.setScale(1.1);
+    this.tweens.killTweensOf(b.glow);
+    b.glow.setScale(0.9);
+    this.tweens.add({
+      targets: b.glow,
+      scale: 1.1,
+      duration: ms,
+      ease: "Sine.easeOut",
+    });
     this.time.delayedCall(ms, () => {
       b.lit.setAlpha(UNLIT_ALPHA).setScale(1);
+      b.hi.setScale(1);
       b.glow.setAlpha(0);
     });
   }
 
   private refreshInfo(): void {
+    if (this.coinText.text !== `🪙 ${state.coins}`) {
+      this.tweens.killTweensOf(this.coinPill.c);
+      this.coinPill.c.setScale(1);
+      this.tweens.add({
+        targets: this.coinPill.c,
+        scale: 1.25,
+        yoyo: true,
+        duration: 130,
+        ease: "Back.easeOut",
+      });
+    }
     this.coinText.setText(`🪙 ${state.coins}`);
     this.earnedText.setText(
       this.earned > 0 ? `Зароблено: 🪙 ${this.earned}` : "",
@@ -284,16 +311,9 @@ export class GarlandScene extends Phaser.Scene {
 
     const record = this.reached > this.prevBest;
     const cx = W / 2;
-    const dim = this.add
-      .rectangle(cx, 700, W - 120, 640, COLORS.bg, 0.96)
-      .setStrokeStyle(5, 0xffffff, 0.3);
+    const dim = panel(this, cx, 700, W - 120, 640, COLORS.bg, 48);
     const title = this.add
-      .text(cx, 480, perfect ? "🌟 Ідеально!" : "Гарна гра!", {
-        fontSize: "60px",
-        fontFamily: FONT,
-        color: "#ffffff",
-        fontStyle: "bold",
-      })
+      .text(cx, 480, perfect ? "🌟 Ідеально!" : "Гарна гра!", strokeText(58))
       .setOrigin(0.5);
     const lines = [
       `Вогників повторила: ${this.reached}`,

@@ -1,4 +1,5 @@
 import type { RoomId } from "./rooms";
+import { ITEMS } from "./items";
 import { ROOMS } from "./rooms";
 
 export interface Placed {
@@ -56,6 +57,18 @@ function isValidSave(d: Partial<SaveData> | null): d is Partial<SaveData> {
 function migrate(d: Partial<SaveData>): SaveData {
   const merged: SaveData = { ...fresh(), ...d };
   if (!ROOMS.some((r) => r.id === merged.room)) merged.room = "bedroom";
+  const known = new Set(ITEMS.map((i) => i.id));
+  const roomIds = new Set<string>(ROOMS.map((r) => r.id));
+  merged.placed = merged.placed.filter(
+    (p) =>
+      known.has(p.id) &&
+      roomIds.has(p.room) &&
+      Number.isFinite(p.x) &&
+      Number.isFinite(p.y),
+  );
+  merged.owned = Object.fromEntries(
+    Object.entries(merged.owned).filter(([id]) => known.has(id)),
+  );
   if (d.purchases === undefined) {
     // Saves from before `purchases` existed: anything beyond the starter set must have been bought.
     const ids = [
@@ -111,3 +124,10 @@ export function totalStars(): number {
 }
 
 export const MAX_STARS = ROOMS.length * 3;
+
+/** Wipe all progress in place (keeps the sound setting) and persist. */
+export function resetState(): void {
+  const { muted } = state;
+  Object.assign(state, fresh(), { muted });
+  save();
+}

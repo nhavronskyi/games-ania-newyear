@@ -93,3 +93,23 @@ export const jingle = (): void => {
     tone(f, i * 0.2, 0.25, "triangle", 0.14),
   );
 };
+
+export const pop = (pitch = 1): void => {
+  tone(520 * pitch, 0, 0.08, "sine", 0.18);
+  tone(780 * pitch, 0.04, 0.09, "sine", 0.1);
+};
+export const boing = (): void => {
+  [200, 260, 330, 270, 220].forEach((f, i) =>
+    tone(f, i * 0.05, 0.12, "sine", 0.16),
+  );
+};
+export const giggle = (): void => {
+  [880, 1040, 880, 1040, 1180].forEach((f, i) =>
+    tone(f, i * 0.07, 0.07, "triangle", 0.1),
+  );
+};
+export const whoosh = (): void => {
+  [520, 430, 350, 280, 220].forEach((f, i) =>
+    tone(f, i * 0.025, 0.07, "sawtooth", 0.035),
+  );
+};

@@ -1,7 +1,11 @@
+import "@fontsource/nunito/800.css";
+import "@fontsource/nunito/900.css";
 import Phaser from "phaser";
 import { H, W } from "./config";
+import { BootScene } from "./scenes/BootScene";
 import { GarlandScene } from "./scenes/GarlandScene";
 import { RoomScene } from "./scenes/RoomScene";
+import { SettingsScene } from "./scenes/SettingsScene";
 import { ShopScene } from "./scenes/ShopScene";
 import { unlockAudio } from "./sound";
 
@@ -15,13 +19,13 @@ new Phaser.Game({
   parent: "game",
   width: W,
   height: H,
-  backgroundColor: "#1b2a49",
+  backgroundColor: "#4b3a7a",
   scale: {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
   },
   input: { activePointers: 2 },
-  scene: [RoomScene, ShopScene, GarlandScene],
+  scene: [BootScene, RoomScene, ShopScene, GarlandScene, SettingsScene],
 });
 
 // Offline support (only in production builds, and only where service workers exist).
