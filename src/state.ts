@@ -1,5 +1,5 @@
-import type { RoomId } from './rooms';
-import { ROOMS } from './rooms';
+import type { RoomId } from "./rooms";
+import { ROOMS } from "./rooms";
 
 export interface Placed {
   uid: string;
@@ -15,32 +15,67 @@ export interface SaveData {
   owned: Record<string, number>; // items in inventory (not placed)
   placed: Placed[];
   room: RoomId;
+  bestGarland: number; // longest garland sequence ever repeated (0 = never played)
+  goalIdx: number; // index of the current goal in GOALS
+  starsPaid: Partial<Record<RoomId, number>>; // stars per room already rewarded with coins
+  purchases: number; // shop purchases made
+  muted: boolean;
+  starHelpSeen: boolean; // the "how to earn stars" popup was shown once
 }
 
-const KEY = 'newyearania.save.v1';
+const KEY = "newyearania.save.v1";
+const STARTER_ITEMS = { tree: 1, star: 1, ball: 2, pot: 1, gift: 1 };
 
 function fresh(): SaveData {
   return {
     v: 1,
-    coins: 100, // "earned from previous jobs"; jobs come in week 2
-    owned: { tree: 1, star: 1, ball: 2, pot: 1, gift: 1 },
+    coins: 100,
+    owned: { ...STARTER_ITEMS },
     placed: [],
-    room: 'bedroom',
+    room: "bedroom",
+    bestGarland: 0,
+    goalIdx: 0,
+    starsPaid: {},
+    purchases: 0,
+    muted: false,
+    starHelpSeen: false,
   };
+}
+
+function isValidSave(d: Partial<SaveData> | null): d is Partial<SaveData> {
+  return (
+    !!d &&
+    d.v === 1 &&
+    typeof d.coins === "number" &&
+    !!d.owned &&
+    Array.isArray(d.placed)
+  );
+}
+
+/** Old saves lack newer fields: fill them with defaults instead of discarding progress. */
+function migrate(d: Partial<SaveData>): SaveData {
+  const merged: SaveData = { ...fresh(), ...d };
+  if (!ROOMS.some((r) => r.id === merged.room)) merged.room = "bedroom";
+  if (d.purchases === undefined) {
+    // Saves from before `purchases` existed: anything beyond the starter set must have been bought.
+    const ids = [
+      ...Object.keys(merged.owned).filter((k) => merged.owned[k] > 0),
+      ...merged.placed.map((p) => p.id),
+    ];
+    if (ids.some((id) => !(id in STARTER_ITEMS))) merged.purchases = 1;
+  }
+  return merged;
 }
 
 function load(): SaveData {
   try {
     const raw = localStorage.getItem(KEY);
     if (raw) {
-      const d = JSON.parse(raw) as SaveData;
-      if (d && d.v === 1 && typeof d.coins === 'number' && d.owned && Array.isArray(d.placed)) {
-        if (!ROOMS.some((r) => r.id === d.room)) d.room = 'bedroom';
-        return d;
-      }
+      const parsed = JSON.parse(raw) as Partial<SaveData> | null;
+      if (isValidSave(parsed)) return migrate(parsed);
     }
   } catch {
-    /* storage may be blocked (private mode) - just play without saving */
+    /* storage may be blocked (private mode) or the save is corrupt - just start fresh */
   }
   return fresh();
 }
