@@ -1,4 +1,32 @@
-node_modules
-dist
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+*.tsbuildinfo
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Editors / IDEs
+.idea/
+.vscode/
+*.swp
+*.iml
+
+# OS
 .DS_Store
-.claude
+Thumbs.db
+
+# Tooling
+.claude/
+.vite/
+coverage/
